@@ -2,35 +2,32 @@ import keras.backend as K
 import tensorflow as tf
 
 
-def loss_seg(relative_weights): #relative_weights:  ch?a c�c tr?ng s? t��ng �?i c?a ba l?p (Foreground, Background, Border)
+def loss_seg(relative_weights): #relative_weights:  chứa các trọng số của với 3 lớp (Foreground, Background, Border)
     """
     Calculates Cross-Entropy Loss between the class targets and predicted outputs.
     Predicted outputs consist of three classes: Foreground, Background and Border.
     Class predictions are weighted by the parameter `relative_weights`.
     """
 
-    class_weights = tf.constant([relative_weights]) #T?o m?t tensor t? relative_weights v� chuy?n n� th�nh h?ng s? TensorFlow.
+    class_weights = tf.constant([relative_weights]) #Tạo môt tensor từ relative_weights và chuyển nó thành hằng số TensorFlow.
 
-    def seg_crossentropy(class_targets, y_pred):#class_targets:  M?ng m?c ti�u (ground truth) d�?i d?ng m?t tensor Th�?ng l� c�c nh?n ph�n �o?n cho h?nh ?nh �?u v�o , y_pred: D? �o�n c?a m� h?nh, c� th? l� c�c gi� tr? logits 
-        onehot_labels = tf.reshape(class_targets, [-1, 3]) #Chuy?n �?i class_targets th�nh �?nh d?ng one-hot, v?i 3 l?p (Foreground, Background, Border), m?i pixel s? c� m?t vector one-hot v?i chi?u d�i 3.
-        #T�nh to�n tr?ng s? cho t?ng pixel d?a tr�n c�c l?p m?c ti�u one-hot. M?i pixel s? c� tr?ng s? ��?c t�nh b?ng c�ch nh�n c�c tr?ng s? l?p v?i c�c gi� tr? one-hot t��ng ?ng
+    def seg_crossentropy(class_targets, y_pred):#class_targets: Mảng mục tiêu (ground truth) dưới dạng một tensor. Thường là các nhãn phân đoạn cho hình ảnh đầu vào, y_pred: Dự đoán của mô hình, có thể là các giá trị logits (trước khi áp dụng hàm softmax).
+        onehot_labels = tf.reshape(class_targets, [-1, 3]) #Chuyển đổi class_targets thành định dạng one-hot, với 3 lớp (Foreground, Background, Border), mỗi pixel sẽ có một vector one-hot với chiều dài 3.
+        #Tính toán trọng số cho từng pixel dựa trên các lớp mục tiêu one-hot. Mỗi pixel sẽ có trọng số được tính bằng cách nhân các trọng số lớp với các giá trị one-hot tương ứng, và sau đó tính tổng theo trục axis=1.
         weights = tf.reduce_sum(class_weights * onehot_labels, axis=1)
 
-        a = tf.reduce_sum(onehot_labels, axis=-1) #T�nh t?ng c�c gi� tr? trong vector one-hot c?a m?i pixeL
+        a = tf.reduce_sum(onehot_labels, axis=-1) #Tính tổng các giá trị trong vector one-hot của mỗi pixel.
 
-        #softmax_cross_entropy_with_logits_v2: ��y l� h�m t�nh Cross-Entropy Loss cho b�i to�n ph�n lo?i �a l?p
+        #softmax_cross_entropy_with_logits_v2: Đây là hàm tính Cross-Entropy Loss cho bài toán phân loại đa lớp.
         loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=onehot_labels,
-                                                          logits=tf.reshape(y_pred, [-1, 3])) #H�m n�y s? t�nh to�n loss cho t?ng l?p c?a m?i pixel.
+                                                          logits=tf.reshape(y_pred, [-1, 3])) #Hàm này sẽ tính toán loss cho từng lớp của mỗi pixel.
 
-        weighted_loss = loss * weights #T�nh loss c� tr?ng s?
+        weighted_loss = loss * weights #Tính loss có trọng số
 
-        return K.mean(a * weighted_loss) #T�nh to�n gi� tr? trung b?nh c?a weighted loss. M?i pixel c� th? c� tr?ng s? kh�c nhau, v? v?y vi?c t�nh trung b?nh n�y gi�p m� h?nh t?p trung v�o c�c ph?n quan tr?ng c?a ?nh (nh� Border ho?c Foreground).
+        return K.mean(a * weighted_loss) # Tính toán giá trị trung bình của weighted loss. Mỗi pixel có thể có trọng số khác nhau, vì vậy việc tính trung bình này giúp mô hình tập trung vào các phần quan trọng của ảnh (như Border hoặc Foreground).
+    return seg_crossentropy #Hàm này sẽ được trả về bởi loss_seg để có thể được sử dụng như là hàm mất mát trong quá trình huấn luyện mô hình.
 
-    return seg_crossentropy #H�m n�y s? ��?c tr? v? b?i loss_seg �? c� th? ��?c s? d?ng nh� l� h�m m?t m�t trong qu� tr?nh hu?n luy?n m� h?nh.
-
-"""H�m loss_seg l� m?t h�m t�nh Cross-Entropy Loss cho b�i to�n ph�n �o?n, v?i ba l?p (Foreground, Background, Border). 
-N� s? d?ng tr?ng s? l?p (relative_weights) �? �i?u ch?nh s? quan tr?ng c?a m?i l?p trong qu� tr?nh t�nh to�n loss. 
-C�c b�?c ch�nh trong h�m l� chuy?n nh?n th�nh one-hot encoding, 
-t�nh to�n loss theo softmax, 
-�p d?ng tr?ng s? cho loss v� t�nh trung b?nh c�c gi� tr? loss. 
-H�m n�y sau �� tr? v? h�m seg_crossentropy c� th? ��?c s? d?ng trong qu� tr?nh hu?n luy?n m� h?nh."""
+"""Hàm loss_seg là một hàm tính Cross-Entropy Loss cho bài toán phân đoạn, với ba lớp (Foreground, Background, Border).
+ Nó sử dụng trọng số lớp (relative_weights) để điều chỉnh sự quan trọng của mỗi lớp trong quá trình tính toán loss. 
+ Các bước chính trong hàm là chuyển nhãn thành one-hot encoding, tính toán loss theo softmax, áp dụng trọng số cho loss và tính trung bình các giá trị loss.
+ Hàm này sau đó trả về hàm seg_crossentropy có thể được sử dụng trong quá trình huấn luyện mô hình."""

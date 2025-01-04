@@ -16,9 +16,7 @@ from voidseg.models import SegConfig
 from voidseg.utils.compute_precision_threshold import compute_threshold, precision
 from voidseg.internals.segmentation_loss import loss_seg
 
-"""Xây d?ng, hu?n luy?n, và lýu tr? các mô h?nh phân ðo?n d?a trên c?u h?nh ðý?c cung c?p.
-T? ð?ng lýu và t?i các thông tin quan tr?ng nhý c?u h?nh (config.json) ho?c tr?ng s? (weights) c?a mô h?nh.
-H? tr? vi?c tái s? d?ng ho?c ki?m tra l?i mô h?nh thông qua vi?c lýu tr? d? li?u vào thý m?c (logdir)."""
+
 
 class Seg(CARE):
     """The training scheme to train a standard 3-class segmentation network.
